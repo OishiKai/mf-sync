@@ -7,3 +7,9 @@ dist/
 __pycache__/
 *.py[cod]
 *.egg-info/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log

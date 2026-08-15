@@ -88,3 +88,10 @@ docker run --rm -p 8080:8080 \
 Cloud Runではコンテナが `$PORT` を使用します。リクエストごとにGCS object metadataを確認し、generation/etag/updatedが変わっていなければ `/tmp/moneyforward.db` を再利用します。変更時は一時ファイルへgeneration条件付きでダウンロードし、atomic rename後のSQLiteだけを `mode=ro&immutable=1` で開きます。
 
 APIは固定SQLだけを実行し、任意SQLや書き込み操作を公開しません。ログにはダウンロードgeneration、処理時間、エラー種別だけを出し、残高・銘柄・API Keyは出力しません。
+
+## Terraform
+
+本番GCPリソースは [`infra/`](./infra/) で管理します。stateは
+`gs://moneyforward-sync-20260815-tfstate/mf-sync/` に保存され、Secret Managerの
+秘密値・secret versionはTerraform stateへ保存しません。実行方法と管理対象は
+[`infra/README.md`](./infra/README.md) を参照してください。
