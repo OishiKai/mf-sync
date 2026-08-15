@@ -1,0 +1,286 @@
+openapi: 3.1.0
+info:
+  title: Money Forward Financial Summary API
+  version: 1.0.0
+  description: >-
+    Read-only access to the user's latest Money Forward financial snapshot.
+    Use this API whenever the user asks about current assets, net worth, cash,
+    securities, holdings, liabilities, account balances, or data freshness.
+servers:
+  - url: https://mf-sync-854431157801.asia-northeast1.run.app
+    description: Production Cloud Run service
+security:
+  - BearerAuth: []
+paths:
+  /v1/summary:
+    get:
+      operationId: getFinancialSummary
+      summary: Get the latest financial snapshot
+      description: >-
+        Returns the latest financial snapshot in JPY, including totals, accounts,
+        holdings, liabilities, and refresh status. Use it for current financial
+        questions. Check sync status before describing the data as fully up to date.
+      responses:
+        "200":
+          description: Latest available financial snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialSummary"
+        "401":
+          description: Bearer API key is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        "503":
+          description: The GCS database is unavailable, unreadable, or incomplete.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API key
+      description: "API key sent as `Authorization: Bearer <API_KEY>`."
+  schemas:
+    FinancialSummary:
+      type: object
+      required:
+        - as_of
+        - sync
+        - totals
+        - cash
+        - securities
+        - pension
+        - insurance
+        - points
+        - other_assets
+        - liabilities
+      properties:
+        as_of:
+          type: string
+          description: Timestamp of the SQLite snapshot represented by this response.
+        sync:
+          $ref: "#/components/schemas/SyncSummary"
+        totals:
+          $ref: "#/components/schemas/Totals"
+        cash:
+          $ref: "#/components/schemas/CategorySummary"
+        securities:
+          $ref: "#/components/schemas/CategorySummary"
+        pension:
+          $ref: "#/components/schemas/CategorySummary"
+        insurance:
+          $ref: "#/components/schemas/CategorySummary"
+        points:
+          $ref: "#/components/schemas/CategorySummary"
+        other_assets:
+          $ref: "#/components/schemas/CategorySummary"
+        liabilities:
+          $ref: "#/components/schemas/CategorySummary"
+
+    SyncSummary:
+      type: object
+      required:
+        - refresh_completed
+      properties:
+        last_scraped_at:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Crawler completion timestamp stored in SQLite, or null if unknown.
+        refresh_completed:
+          anyOf:
+            - type: boolean
+            - type: "null"
+          description: Whether all account refreshes completed; null means unknown.
+        incomplete_accounts:
+          type: array
+          description: Active accounts whose stored refresh status is not ok.
+          items:
+            type: string
+        accounts:
+          type: array
+          description: Stored refresh state for every active Money Forward account.
+          items:
+            $ref: "#/components/schemas/AccountSyncStatus"
+
+    AccountSyncStatus:
+      type: object
+      required:
+        - institution
+        - account
+        - status
+      properties:
+        institution:
+          anyOf:
+            - type: string
+            - type: "null"
+        account:
+          type: string
+        last_updated_at:
+          anyOf:
+            - type: string
+            - type: "null"
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+        error_message:
+          anyOf:
+            - type: string
+            - type: "null"
+
+    Totals:
+      type: object
+      required:
+        - assets
+        - liabilities
+        - net_worth
+      properties:
+        assets:
+          type: integer
+          description: Official latest total assets from Money Forward, in JPY.
+        liabilities:
+          type: integer
+          description: Sum of latest liability holdings, in JPY.
+        net_worth:
+          type: integer
+          description: Assets minus liabilities, in JPY.
+
+    CategorySummary:
+      type: object
+      required:
+        - total
+      properties:
+        total:
+          type: integer
+          description: Category total in JPY.
+        accounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountSummary"
+
+    AccountSummary:
+      type: object
+      required:
+        - institution
+        - account
+        - total
+        - status
+      properties:
+        institution:
+          anyOf:
+            - type: string
+            - type: "null"
+        account:
+          anyOf:
+            - type: string
+            - type: "null"
+        total:
+          type: integer
+          description: Sum of holdings in this response category, in JPY.
+        last_updated_at:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Money Forward account update date or datetime, or null if unknown.
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+        raw_institution_category:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Original Money Forward institution category.
+        holdings:
+          type: array
+          items:
+            $ref: "#/components/schemas/HoldingSummary"
+
+    HoldingSummary:
+      type: object
+      required:
+        - name
+        - type
+        - amount
+      properties:
+        name:
+          type: string
+        code:
+          anyOf:
+            - type: string
+            - type: "null"
+        type:
+          type: string
+          description: Normalized holding type, such as stock or investment_trust.
+        amount:
+          type: integer
+          description: Current valuation in JPY.
+        quantity:
+          anyOf:
+            - type: number
+            - type: "null"
+        unit_price:
+          anyOf:
+            - type: integer
+            - type: "null"
+          description: Current JPY unit price when available.
+        average_cost:
+          anyOf:
+            - type: integer
+            - type: "null"
+          description: Average JPY acquisition unit price when available.
+        unrealized_gain:
+          anyOf:
+            - type: integer
+            - type: "null"
+          description: Unrealized gain or loss in JPY when available.
+        unrealized_gain_pct:
+          anyOf:
+            - type: number
+            - type: "null"
+          description: Unrealized gain or loss percentage when available.
+        raw_category:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Original Money Forward asset or liability category.
+
+    AccountStatus:
+      type: string
+      enum:
+        - ok
+        - error
+        - updating
+        - suspended
+        - unknown
+
+    UnauthorizedResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          example: Unauthorized
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorBody"
+
+    ErrorBody:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
