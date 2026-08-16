@@ -1,5 +1,5 @@
 ARG PYTHON_BUILD_IMAGE=python:3.13-slim-trixie@sha256:ffb752e139c0a19692a43af8d8523b274222dd68eebad5d583b45c2201c6e30a
-ARG PYTHON_RUNTIME_IMAGE=gcr.io/distroless/python3-debian13:nonroot@sha256:1c680cdb442a9e7a89f64fd1706367c62302ea1f9ab80fdebdb72ae9fcded46f
+ARG PYTHON_RUNTIME_IMAGE=gcr.io/distroless/python3-debian13:nonroot@sha256:eff0a6050f5ea9e8154c3d137d468901864803ce3c7f4657d419e64f3f1f8b40
 
 FROM ${PYTHON_BUILD_IMAGE} AS dependencies
 
