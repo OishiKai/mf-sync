@@ -62,12 +62,20 @@ class GcsSqliteCache:
 
             local_path = self._settings.local_db_path
             if self._cached_version == version and local_path.is_file():
+                local_path.chmod(0o600)
                 return local_path
 
-            local_path.parent.mkdir(parents=True, exist_ok=True)
+            local_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            local_path.parent.chmod(0o700)
             temporary_path = local_path.with_name(f"{local_path.name}.new.{uuid4().hex}")
 
             try:
+                temporary_fd = os.open(
+                    temporary_path,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                    0o600,
+                )
+                os.close(temporary_fd)
                 download_blob = metadata_blob
                 download_kwargs: dict[str, Any] = {"checksum": "auto"}
                 if metadata_blob.generation is not None:
@@ -81,6 +89,7 @@ class GcsSqliteCache:
                 if not temporary_path.is_file() or temporary_path.stat().st_size == 0:
                     raise OSError("Downloaded database is empty")
                 os.replace(temporary_path, local_path)
+                local_path.chmod(0o600)
             except Exception as exc:
                 raise DatabaseDownloadError("Could not download GCS database object") from exc
             finally:

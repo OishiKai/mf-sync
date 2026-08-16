@@ -6,7 +6,10 @@ locals {
     "artifactregistry.googleapis.com",
     "cloudbuild.googleapis.com",
     "cloudscheduler.googleapis.com",
+    "containerscanning.googleapis.com",
     "iam.googleapis.com",
+    "logging.googleapis.com",
+    "monitoring.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
     "serviceusage.googleapis.com",
@@ -48,6 +51,23 @@ locals {
     totp = {
       secret_id       = "mf-totp-secret"
       accessor_sa_key = "crawler_runtime"
+    }
+  }
+
+  legacy_bucket_roles = toset([
+    "roles/storage.legacyBucketOwner",
+    "roles/storage.legacyBucketReader",
+    "roles/storage.legacyObjectOwner",
+    "roles/storage.legacyObjectReader",
+  ])
+
+  legacy_bucket_bindings = {
+    for pair in setproduct(
+      toset([local.data_bucket_name, local.state_bucket_name]),
+      local.legacy_bucket_roles,
+      ) : "${pair[0]} ${pair[1]}" => {
+      bucket = pair[0]
+      role   = pair[1]
     }
   }
 }

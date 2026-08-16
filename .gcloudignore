@@ -1,3 +1,4 @@
+.gcloudignore
 .git
 .github
 .env
@@ -5,8 +6,6 @@
 .pytest_cache
 .ruff_cache
 .venv
-.terraform
-infra
 __pycache__
 *.pyc
 *.egg-info
@@ -18,4 +17,9 @@ auth-state*.json
 service-account*.json
 build
 dist
+infra/.terraform
+infra/backend.hcl
+infra/terraform.tfvars
+infra/*.tfplan
+infra/*.tfstate*
 tests

@@ -9,7 +9,6 @@ terraform {
   }
 
   backend "gcs" {
-    bucket = "moneyforward-sync-20260815-tfstate"
     prefix = "mf-sync"
   }
 }

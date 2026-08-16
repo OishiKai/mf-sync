@@ -173,7 +173,6 @@ def _sync_model(data: SummaryData) -> SyncSummary:
             account=account.name,
             last_updated_at=account.last_updated,
             status=account.status,
-            error_message=account.error_message,
         )
         for account in data.accounts
     ]

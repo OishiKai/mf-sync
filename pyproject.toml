@@ -20,12 +20,17 @@ test = [
   "pytest>=8.4,<10",
   "ruff>=0.12,<1",
 ]
+security = [
+  "bandit[toml]==1.9.4",
+  "pip-audit==2.10.1",
+]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
+pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.ruff]

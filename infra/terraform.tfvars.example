@@ -1,0 +1,6 @@
+project_id    = "YOUR_GCP_PROJECT_ID"
+api_image     = "REGION-docker.pkg.dev/YOUR_GCP_PROJECT_ID/REPOSITORY/API_IMAGE@sha256:DIGEST"
+crawler_image = "REGION-docker.pkg.dev/YOUR_GCP_PROJECT_ID/REPOSITORY/CRAWLER_IMAGE@sha256:DIGEST"
+alert_email   = "you@example.com"
+terraform_operator = "user:you@example.com"
+import_existing = false

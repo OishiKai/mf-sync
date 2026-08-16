@@ -51,7 +51,6 @@ class AccountSyncStatus(BaseModel):
     account: str
     last_updated_at: str | None = None
     status: AccountStatus
-    error_message: str | None = None
 
 
 class SyncSummary(BaseModel):

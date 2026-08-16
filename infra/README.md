@@ -1,36 +1,64 @@
 # GCP infrastructure
 
-This directory manages the production Money Forward infrastructure in
-`moneyforward-sync-20260815` with Terraform.
+This directory manages the production Money Forward infrastructure with Terraform.
+Tracked files contain no project IDs, account addresses, credentials, secret values, or
+Terraform state.
 
-## Authentication
+## Bootstrap
 
-The configuration does not store credentials. From the repository root, pass a
-short-lived `gcloud` access token only to the current command:
+Create a dedicated Google Cloud project and an empty, private GCS state bucket first. Then
+copy the local configuration templates:
 
 ```bash
-GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)" terraform -chdir=infra init
-GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)" terraform -chdir=infra plan
-GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)" terraform -chdir=infra apply
+cp infra/backend.hcl.example infra/backend.hcl
+cp infra/terraform.tfvars.example infra/terraform.tfvars
 ```
 
-The remote state is stored in `gs://moneyforward-sync-20260815-tfstate/mf-sync/`.
-The state bucket has uniform bucket-level access, public access prevention, versioning,
-soft delete, and Terraform destroy protection.
+Fill both ignored files. Container image variables must use immutable `@sha256:` digests.
+Set `terraform_operator` to the user, group, or service account that will operate Terraform.
 
-## Managed resources
+Initialize the partial backend and validate the configuration:
 
-- required Google Cloud APIs
-- application service accounts and least-privilege IAM grants
-- data and Terraform state buckets
-- active Secret Manager secret containers and their accessors
-- Cloud Run service `mf-sync`
-- Cloud Run job `mf-crawler`
-- Cloud Scheduler job `mf-crawler-daily`
-- Artifact Registry repository used by Cloud Run source deployments
+```bash
+GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)" \
+  terraform -chdir=infra init -reconfigure -backend-config=backend.hcl
+terraform -chdir=infra fmt -check -recursive
+terraform -chdir=infra validate
+```
 
-Secret values and secret versions are intentionally not managed by Terraform. The unused
-legacy `mf-op-*` Secret Manager secrets are also intentionally outside this configuration.
+Use `import_existing = true` only when adopting the specifically named pre-existing resources
+defined in `imports.tf`. Set it back to `false` after the first successful apply.
 
-Run `terraform plan` before every apply. A plan must never replace or destroy the Cloud Run
-service, crawler job, buckets, secrets, or service accounts.
+## Plan and apply
+
+Use a short-lived access token and always review a saved plan before applying it:
+
+```bash
+GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)" \
+  terraform -chdir=infra plan -out=reviewed.tfplan
+terraform -chdir=infra show reviewed.tfplan
+GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)" \
+  terraform -chdir=infra apply reviewed.tfplan
+```
+
+Do not apply a plan that unexpectedly replaces or destroys the Cloud Run service, crawler job,
+buckets, secrets, or service accounts.
+
+## Managed resources and controls
+
+- required Google Cloud APIs and continuous Artifact Registry scanning
+- dedicated build, API, crawler, and scheduler service accounts
+- removal of the basic Editor grant and disabling of default service accounts
+- object-scoped data bucket access for the API and crawler
+- private data and state buckets with uniform access, public access prevention, versioning,
+  soft delete, and destroy protection
+- a bucket-scoped Terraform operator role and state-object access
+- Secret Manager containers and per-secret runtime accessors
+- Cloud Run service `mf-sync`, Cloud Run job `mf-crawler`, and weekday JST scheduler
+- Secret Manager and Cloud Storage Data Access audit logs
+- API authentication/5xx and crawler-failure log metrics and alert policies
+
+Secret values and secret versions are intentionally not managed by Terraform. Add values with
+Secret Manager after applying the secret containers. A standalone project cannot enforce
+organization policies such as service-account-key creation constraints; apply those policies at
+the Google Cloud organization level when an organization is available.

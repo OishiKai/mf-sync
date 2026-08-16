@@ -32,11 +32,13 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       startup_probe {
-        failure_threshold = 1
-        period_seconds    = 240
-        timeout_seconds   = 240
+        failure_threshold     = 10
+        initial_delay_seconds = 1
+        period_seconds        = 2
+        timeout_seconds       = 2
 
-        tcp_socket {
+        http_get {
+          path = "/healthz"
           port = 8080
         }
       }
@@ -49,6 +51,21 @@ resource "google_cloud_run_v2_service" "api" {
       env {
         name  = "GCS_DB_OBJECT"
         value = "moneyforward.db"
+      }
+
+      env {
+        name  = "UNAUTHORIZED_RATE_LIMIT"
+        value = "120"
+      }
+
+      env {
+        name  = "AUTHENTICATED_RATE_LIMIT"
+        value = "60"
+      }
+
+      env {
+        name  = "RATE_LIMIT_WINDOW_SECONDS"
+        value = "60"
       }
 
       env {

@@ -128,4 +128,4 @@ def test_sync_uses_snapshot_and_account_statuses(financial_db):
     assert summary.sync.incomplete_accounts == ["Test Card"]
     card = next(account for account in summary.sync.accounts if account.account == "Test Card")
     assert card.status == "error"
-    assert card.error_message == "Authentication required"
+    assert not hasattr(card, "error_message")

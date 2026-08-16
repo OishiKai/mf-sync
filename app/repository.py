@@ -19,7 +19,6 @@ REQUIRED_SCHEMA: dict[str, set[str]] = {
         "account_id",
         "status",
         "last_updated",
-        "error_message",
     },
     "holdings": {
         "id",
@@ -71,7 +70,6 @@ class AccountRecord:
     institution_category: str | None
     status: str
     last_updated: str | None
-    error_message: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,8 +158,7 @@ class SqliteSummaryRepository:
                     a.institution,
                     ic.name AS institution_category,
                     s.status,
-                    s.last_updated,
-                    s.error_message
+                    s.last_updated
                 FROM group_accounts AS ga
                 JOIN accounts AS a ON a.id = ga.account_id
                 LEFT JOIN institution_categories AS ic ON ic.id = a.category_id
@@ -270,7 +267,6 @@ class SqliteSummaryRepository:
             institution_category=row["institution_category"],
             status=cls._normalize_status(row["status"]),
             last_updated=row["last_updated"],
-            error_message=row["error_message"],
         )
 
     @classmethod

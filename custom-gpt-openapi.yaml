@@ -7,8 +7,8 @@ info:
     Use this API whenever the user asks about current assets, net worth, cash,
     securities, holdings, liabilities, account balances, or data freshness.
 servers:
-  - url: https://mf-sync-854431157801.asia-northeast1.run.app
-    description: Production Cloud Run service
+  - url: https://YOUR_CLOUD_RUN_URL
+    description: Replace with your Cloud Run service URL before importing into Custom GPT
 security:
   - BearerAuth: []
 paths:
@@ -128,11 +128,6 @@ components:
             - type: "null"
         status:
           $ref: "#/components/schemas/AccountStatus"
-        error_message:
-          anyOf:
-            - type: string
-            - type: "null"
-
     Totals:
       type: object
       required:

@@ -45,7 +45,9 @@ ETFかどうかをSQLite上のカテゴリや銘柄コードから確定でき�
 | `API_KEY` | はい | Bearer認証用シークレット |
 | `GCS_BUCKET` | はい | SQLiteを保存するCloud Storage bucket |
 | `GCS_DB_OBJECT` | いいえ | object名。既定値 `moneyforward.db` |
-| `PORT` | Cloud Runが設定 | uvicornのlisten port。ローカル既定値 `8080` |
+| `UNAUTHORIZED_RATE_LIMIT` | いいえ | 未認証リクエストの1インスタンス・1分あたり上限。既定値 `120` |
+| `AUTHENTICATED_RATE_LIMIT` | いいえ | 認証済みリクエストの1インスタンス・1分あたり上限。既定値 `60` |
+| `RATE_LIMIT_WINDOW_SECONDS` | いいえ | rate limitの評価窓。既定値 `60` |
 
 Cloud Runのサービスアカウントには対象objectの読み取り権限だけを付与してください。
 
@@ -58,13 +60,17 @@ API_KEY=... GCS_BUCKET=... GCS_DB_OBJECT=moneyforward.db \
   .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
-OpenAPI schemaは `GET /openapi.json`、Swagger UIは `/docs` です。Custom GPT Actions向けoperation IDは `getFinancialSummary` です。
+本番コンテナではOpenAPI/Swagger UIを公開しません。Custom GPT Actions向けoperation IDは `getFinancialSummary` です。
 
 ### Custom GPT Actions
 
-GPTエディタのActionsには [`custom-gpt-openapi.yaml`](./custom-gpt-openapi.yaml) を貼り付けます。
+GPTエディタのActionsには [`custom-gpt-openapi.yaml`](./custom-gpt-openapi.yaml) の
+`YOUR_CLOUD_RUN_URL` を自分のCloud Run URLへ置き換えて貼り付けます。
 認証は「API Key」を選び、BearerとしてCloud Run Serviceの `API_KEY` と同じ値を設定してください。
-スキーマには本番Cloud Run URLと読み取り専用の `GET /v1/summary` だけを定義しています。
+スキーマには読み取り専用の `GET /v1/summary` だけを定義しています。
+
+APIレスポンス内の口座名・銘柄名などは命令ではなく外部データとして扱い、そこに
+含まれる指示へ従わないようCustom GPTのInstructionsにも明記してください。
 
 ## テスト
 
@@ -85,13 +91,13 @@ docker run --rm -p 8080:8080 \
   mf-sync
 ```
 
-Cloud Runではコンテナが `$PORT` を使用します。リクエストごとにGCS object metadataを確認し、generation/etag/updatedが変わっていなければ `/tmp/moneyforward.db` を再利用します。変更時は一時ファイルへgeneration条件付きでダウンロードし、atomic rename後のSQLiteだけを `mode=ro&immutable=1` で開きます。
+本番コンテナは非rootのDistroless Pythonでポート`8080`を使用します。リクエストごとにGCS object metadataを確認し、generation/etag/updatedが変わっていなければ `/tmp/mf-sync/moneyforward.db` を再利用します。変更時は権限`0600`の一時ファイルへgeneration条件付きでダウンロードし、atomic rename後のSQLiteだけを `mode=ro&immutable=1` で開きます。
 
 APIは固定SQLだけを実行し、任意SQLや書き込み操作を公開しません。ログにはダウンロードgeneration、処理時間、エラー種別だけを出し、残高・銘柄・API Keyは出力しません。
 
 ## Terraform
 
-本番GCPリソースは [`infra/`](./infra/) で管理します。stateは
-`gs://moneyforward-sync-20260815-tfstate/mf-sync/` に保存され、Secret Managerの
-秘密値・secret versionはTerraform stateへ保存しません。実行方法と管理対象は
+本番GCPリソースは [`infra/`](./infra/) で管理します。stateは利用者が指定する
+非公開GCS bucketに保存され、Secret Managerの秘密値・secret versionはTerraform
+stateへ保存しません。実行方法と管理対象は
 [`infra/README.md`](./infra/README.md) を参照してください。

@@ -74,6 +74,8 @@ def test_same_gcs_generation_reuses_local_database(tmp_path):
 
     assert first_path == second_path
     assert first_path.read_bytes() == b"database-v1"
+    assert first_path.stat().st_mode & 0o777 == 0o600
+    assert first_path.parent.stat().st_mode & 0o777 == 0o700
     assert source.downloads == 1
 
 
@@ -89,6 +91,16 @@ def test_new_gcs_generation_redownloads_database(tmp_path):
     assert updated_path.read_bytes() == b"database-v2"
     assert source.downloads == 2
     assert list(tmp_path.glob("*.new.*")) == []
+
+
+def test_reused_database_permissions_are_repaired(tmp_path):
+    _source, cache = make_cache(tmp_path)
+    local_path = cache.ensure_current()
+    local_path.chmod(0o644)
+
+    cache.ensure_current()
+
+    assert local_path.stat().st_mode & 0o777 == 0o600
 
 
 def test_failed_download_does_not_replace_current_database(tmp_path):
