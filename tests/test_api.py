@@ -65,7 +65,7 @@ def test_production_documentation_routes_are_disabled(financial_db):
 
 
 def test_health_check_is_public_and_data_free():
-    response = TestClient(create_app()).get("/healthz")
+    response = TestClient(create_app()).get("/health")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}

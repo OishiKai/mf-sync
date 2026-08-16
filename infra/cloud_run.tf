@@ -38,7 +38,7 @@ resource "google_cloud_run_v2_service" "api" {
         timeout_seconds       = 2
 
         http_get {
-          path = "/healthz"
+          path = "/health"
           port = 8080
         }
       }

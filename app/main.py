@@ -106,8 +106,8 @@ def create_app(
         response.headers["Strict-Transport-Security"] = "max-age=31536000"
         return response
 
-    @application.get("/healthz", include_in_schema=False)
-    def healthz() -> dict[str, str]:
+    @application.get("/health", include_in_schema=False)
+    def health() -> dict[str, str]:
         return {"status": "ok"}
 
     @application.exception_handler(MfSyncError)
